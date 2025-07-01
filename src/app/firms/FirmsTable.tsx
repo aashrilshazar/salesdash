@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function FirmsTable({ initialFirms }: Props) {
-  // ─── state ───────────────────────────────────────────────
+  // ─── STATE ───────────────────────────────────────────────
   const [search, setSearch] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
@@ -20,70 +20,94 @@ export default function FirmsTable({ initialFirms }: Props) {
   const [showAumCol, setShowAumCol] = useState(true)
   const [sortKey, setSortKey] = useState<SortKey>('aumMillions')
   const [direction, setDirection] = useState<SortDirection>('desc')
-  const [summaries, setSummaries] = useState<Record<string,string>>({})
-  const [expanded, setExpanded] = useState<Record<string,boolean>>({})
+  const [summaries, setSummaries] = useState<Record<string, string>>({})
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [showMedian, setShowMedian] = useState(true)
 
-// GROUP BOOKINGS BY FIRM
-const groupedFirms = useMemo(() => {
-    const map: Record<string,{ name: string; dates: string[]; aumMillions: number }> = {}
+  // ─── GROUP BOOKINGS ──────────────────────────────────────
+  const groupedFirms = useMemo(() => {
+    const map: Record<string, { name: string; dates: string[]; aumMillions: number }> = {}
     initialFirms.forEach(f => {
-        if (!map[f.name]) {
-            map[f.name] = { name: f.name, dates: [f.dateBooked], aumMillions: f.aumMillions }
-        } else {
-            map[f.name].dates.push(f.dateBooked)
-            map[f.name].aumMillions = Math.max(map[f.name].aumMillions, f.aumMillions)
-        }
+      if (!map[f.name]) {
+        map[f.name] = { name: f.name, dates: [f.dateBooked], aumMillions: f.aumMillions }
+      } else {
+        map[f.name].dates.push(f.dateBooked)
+        map[f.name].aumMillions = Math.max(map[f.name].aumMillions, f.aumMillions)
+      }
     })
     return Object.values(map).map(g => ({
-        name: g.name,
-        // sort dates, join comma-separated
-        dateBooked: g.dates
-            .map(d => new Date(d))
-            .sort((a,b) => a.getTime() - b.getTime())
-            .map(d => `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`)
-            .join(', '),
-        aumMillions: g.aumMillions
+      name: g.name,
+      dateBooked: g.dates
+        .map(d => new Date(d))
+        .sort((a, b) => a.getTime() - b.getTime())
+        .map(d => `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`)
+        .join(', '),
+      aumMillions: g.aumMillions,
     }))
-}, [initialFirms])
+  }, [initialFirms])
 
-  // GPT 
-
-    const fetchSummary = async (name: string) => {
-        if (summaries[name]) return
-        const res = await fetch(`/api/meetings?name=${encodeURIComponent(name)}`)
-        if (!res.ok) {
-            console.error('summary fetch failed', res.status)
-            return
-        }
-        const { summary } = await res.json()
-        setSummaries(s => ({ ...s, [name]: summary }))
+  // ─── GPT ─────────────────────────────────────────────────
+  const fetchSummary = async (name: string) => {
+    if (summaries[name]) return
+    const res = await fetch(`/api/meetings?name=${encodeURIComponent(name)}`)
+    if (!res.ok) {
+      console.error('summary fetch failed', res.status)
+      return
     }
+    const { summary } = await res.json()
+    setSummaries(s => ({ ...s, [name]: summary }))
+  }
 
-        const handleNameClick = async (name: string) => {
-            if (!summaries[name]) {
-                await fetchSummary(name)
-                setExpanded(e => ({ ...e, [name]: true }))
-            } else {
-                setExpanded(e => ({ ...e, [name]: !e[name] }))
-            }
-        }
-
+  const handleNameClick = async (name: string) => {
+    if (!summaries[name]) {
+      await fetchSummary(name)
+      setExpanded(e => ({ ...e, [name]: true }))
+    } else {
+      setExpanded(e => ({ ...e, [name]: !e[name] }))
+    }
+  }
 
   // ─── KPI METRICS ─────────────────────────────────────────
   const totalAum = useMemo(
     () => groupedFirms.reduce((sum, f) => sum + f.aumMillions, 0),
     [groupedFirms]
   )
+
   const countFirms = groupedFirms.length
-  const avgAum = Math.round(totalAum / (countFirms || 1))
+
+  const medianAum = useMemo(() => {
+    const validAums = groupedFirms
+      .map(f => f.aumMillions)
+      .filter(aum => aum > 0)
+      .sort((a, b) => a - b)
+
+    const len = validAums.length
+    if (len === 0) return 0
+    const mid = Math.floor(len / 2)
+
+    return len % 2 !== 0
+      ? validAums[mid]
+      : (validAums[mid - 1] + validAums[mid]) / 2
+  }, [groupedFirms])
+
+  const avgAum = useMemo(() => {
+    const validAums = groupedFirms
+      .map(f => f.aumMillions)
+      .filter(aum => aum > 0)
+
+    if (validAums.length === 0) return 0
+
+    const total = validAums.reduce((sum, val) => sum + val, 0)
+    return total / validAums.length
+  }, [groupedFirms])
 
   const [minDate, maxDate] = useMemo(() => {
-  if (!initialFirms.length) return [new Date(), new Date()]
-  const times = initialFirms.map(f => new Date(f.dateBooked).getTime())
-  return [new Date(Math.min(...times)), new Date(Math.max(...times))]
-}, [initialFirms])
+    if (!initialFirms.length) return [new Date(), new Date()]
+    const times = initialFirms.map(f => new Date(f.dateBooked).getTime())
+    return [new Date(Math.min(...times)), new Date(Math.max(...times))]
+  }, [initialFirms])
 
-  const dateSpan = `${minDate.toLocaleString('default',{month:'short'})} – ${maxDate.toLocaleString('default',{month:'short'})} ${maxDate.getFullYear()}`
+  const dateSpan = `${minDate.toLocaleString('default', { month: 'short' })} – ${maxDate.toLocaleString('default', { month: 'short' })} ${maxDate.getFullYear()}`
 
   // ─── FILTER & SORT ───────────────────────────────────────
   const terms = search.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
@@ -95,8 +119,9 @@ const groupedFirms = useMemo(() => {
       if (startDate && d < new Date(startDate)) return false
       if (endDate && d > new Date(endDate)) return false
       return true
-    })
-  , [groupedFirms, terms, startDate, endDate])
+    }),
+    [groupedFirms, terms, startDate, endDate]
+  )
 
   const sorted = useMemo(() => {
     const arr = [...filtered]
@@ -120,6 +145,7 @@ const groupedFirms = useMemo(() => {
       setDirection('desc')
     }
   }
+
   const arrow = (k: SortKey) =>
     sortKey === k ? (direction === 'asc' ? '▴' : '▾') : ''
 
@@ -149,6 +175,25 @@ const groupedFirms = useMemo(() => {
     setDirection('desc')
   }
 
+  // ─── STYLES ───────────────────────────────────────────────
+  const headerCell: React.CSSProperties = {
+    padding: '12px 16px',
+    borderBottom: '1px solid #444',
+    textAlign: 'left',
+    color: '#eee',
+    userSelect: 'none',
+    position: 'sticky',
+    top: 0,
+    background: '#2a2a2a',
+    zIndex: 1,
+  }
+
+  const bodyCell: React.CSSProperties = {
+    padding: '12px 16px',
+    borderBottom: '1px solid #333',
+    color: '#ddd',
+  }
+
   // ─── render ────────────────────────────────────────────────
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', color: 'white' }}>
@@ -160,32 +205,58 @@ const groupedFirms = useMemo(() => {
         marginBottom: 32,
       }}>
         {[
-          [ 
-            'Total AUM', 
-            `${(totalAum / 1000000)
-                .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-             Trillion` 
-          ],
-          ['# of Firms', countFirms],
-          [
-            'Average AUM',
-            `${(avgAum / 1000)
-                .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-             B`
-          ],
-          ['Date span', dateSpan],
-        ].map(([label, val]) => (
-          <div key={label} style={{
-            background: '#1e1e1e',
-            padding: 16,
-            borderRadius: 8,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.5)',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 13, color: '#bbb' }}>{label}</div>
-            <div style={{ fontSize: 26, fontWeight: 600, marginTop: 6 }}>{val}</div>
-          </div>
-        ))}
+  [ 
+    'Total AUM', 
+    `${(totalAum / 1_000_000)
+        .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+     Trillion` 
+  ],
+  ['Number of Firms', countFirms],
+  [
+    showMedian ? 'Median AUM' : 'Average AUM',
+    `${((showMedian ? medianAum : avgAum) / 1_000)
+        .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+     B`
+  ],
+  ['Date span', dateSpan],
+].map(([label, val], idx) => {
+  const isAumToggle = label === 'Median AUM' || label === 'Average AUM'
+  return (
+    <div
+      key={label}
+      onClick={isAumToggle ? () => setShowMedian(v => !v) : undefined}
+    style={{
+        background: '#1e1e1e',
+        padding: 16,
+        borderRadius: 8,
+        /* use “grab” for clickable tile */
+        cursor: isAumToggle ? 'grab' : 'default',
+        textAlign: 'center',       // ensures label + value stay centered
+        display: 'flex',            // allow centering both axes
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        /* base shadow + subtle glow for AUM toggle */
+        boxShadow: isAumToggle
+            ? '0 2px 6px rgba(0,0,0,0.5), 0 0 16px rgba(78,161,255,0.7), 0 0 24px rgba(78,161,255,0.5)'
+            : '0 2px 6px rgba(0,0,0,0.5)',
+        transition: 'opacity 0.3s ease',
+        animation: isAumToggle ? 'glowPulse 2s ease-in-out infinite' : undefined,
+        }}
+        onMouseEnter={isAumToggle ? (e) =>
+            (e.currentTarget.style.boxShadow =
+                '0 2px 6px rgba(0,0,0,0.5), 0 0 12px rgba(78,161,255,0.6)')
+            : undefined}
+            onMouseLeave={isAumToggle ? (e) =>
+                (e.currentTarget.style.boxShadow =
+                    '0 2px 6px rgba(0,0,0,0.5), 0 0 8px rgba(78,161,255,0.4)')
+            : undefined}
+    >
+      <div style={{ fontSize: 13, color: '#bbb' }}>{label}</div>
+      <div style={{ fontSize: 26, fontWeight: 600, marginTop: 6 }}>{val}</div>
+    </div>
+  )
+})}
       </div>
 
       {/* — CONTROLS BAR — */}
@@ -377,4 +448,3 @@ const bodyCell: React.CSSProperties = {
   borderBottom: '1px solid #333',
   color: '#ddd',
 }
-
