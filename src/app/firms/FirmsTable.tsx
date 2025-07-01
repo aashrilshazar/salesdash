@@ -219,7 +219,7 @@ export default function FirmsTable({ initialFirms }: Props) {
      B`
   ],
   ['Date span', dateSpan],
-].map(([label, val], _idx) => {
+].map(([label, val]) => {
   const isAumToggle = label === 'Median AUM' || label === 'Average AUM'
   return (
     <div
