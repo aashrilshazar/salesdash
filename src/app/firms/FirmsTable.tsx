@@ -430,21 +430,3 @@ export default function FirmsTable({ initialFirms }: Props) {
     </div>
   )
 }
-
-const headerCell: React.CSSProperties = {
-  padding: '12px 16px',
-  borderBottom: '1px solid #444',
-  textAlign: 'left',
-  color: '#eee',
-  userSelect: 'none',
-  position: 'sticky',
-  top: 0,
-  background: '#2a2a2a',
-  zIndex: 1,
-}
-
-const bodyCell: React.CSSProperties = {
-  padding: '12px 16px',
-  borderBottom: '1px solid #333',
-  color: '#ddd',
-}
