@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: 'You’re a concise research assistant.' },
-        { role: 'user', content: `Give me a 1–2 sentence summary of the firm "${name}".` },
+        { role: 'user', content: `Give me a 1–2 sentence summary of the private equity firm "${name}".` },
       ],
       max_tokens: 60,
     })

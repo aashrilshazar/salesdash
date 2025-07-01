@@ -23,6 +23,29 @@ export default function FirmsTable({ initialFirms }: Props) {
   const [summaries, setSummaries] = useState<Record<string,string>>({})
   const [expanded, setExpanded] = useState<Record<string,boolean>>({})
 
+// GROUP BOOKINGS BY FIRM
+const groupedFirms = useMemo(() => {
+    const map: Record<string,{ name: string; dates: string[]; aumMillions: number }> = {}
+    initialFirms.forEach(f => {
+        if (!map[f.name]) {
+            map[f.name] = { name: f.name, dates: [f.dateBooked], aumMillions: f.aumMillions }
+        } else {
+            map[f.name].dates.push(f.dateBooked)
+            map[f.name].aumMillions = Math.max(map[f.name].aumMillions, f.aumMillions)
+        }
+    })
+    return Object.values(map).map(g => ({
+        name: g.name,
+        // sort dates, join comma-separated
+        dateBooked: g.dates
+            .map(d => new Date(d))
+            .sort((a,b) => a.getTime() - b.getTime())
+            .map(d => `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`)
+            .join(', '),
+        aumMillions: g.aumMillions
+    }))
+}, [initialFirms])
+
   // GPT 
 
     const fetchSummary = async (name: string) => {
@@ -48,17 +71,17 @@ export default function FirmsTable({ initialFirms }: Props) {
 
   // ─── KPI METRICS ─────────────────────────────────────────
   const totalAum = useMemo(
-    () => initialFirms.reduce((sum, f) => sum + f.aumMillions, 0),
-    [initialFirms]
+    () => groupedFirms.reduce((sum, f) => sum + f.aumMillions, 0),
+    [groupedFirms]
   )
-  const countFirms = initialFirms.length
+  const countFirms = groupedFirms.length
   const avgAum = Math.round(totalAum / (countFirms || 1))
 
   const [minDate, maxDate] = useMemo(() => {
-    if (!initialFirms.length) return [new Date(), new Date()]
-    const times = initialFirms.map(f => new Date(f.dateBooked).getTime())
-    return [new Date(Math.min(...times)), new Date(Math.max(...times))]
-  }, [initialFirms])
+  if (!initialFirms.length) return [new Date(), new Date()]
+  const times = initialFirms.map(f => new Date(f.dateBooked).getTime())
+  return [new Date(Math.min(...times)), new Date(Math.max(...times))]
+}, [initialFirms])
 
   const dateSpan = `${minDate.toLocaleString('default',{month:'short'})} – ${maxDate.toLocaleString('default',{month:'short'})} ${maxDate.getFullYear()}`
 
@@ -66,14 +89,14 @@ export default function FirmsTable({ initialFirms }: Props) {
   const terms = search.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
 
   const filtered = useMemo(() =>
-    initialFirms.filter(f => {
+    groupedFirms.filter(f => {
       if (terms.length && !terms.some(t => f.name.toLowerCase().includes(t))) return false
       const d = new Date(f.dateBooked)
       if (startDate && d < new Date(startDate)) return false
       if (endDate && d > new Date(endDate)) return false
       return true
     })
-  , [initialFirms, terms, startDate, endDate])
+  , [groupedFirms, terms, startDate, endDate])
 
   const sorted = useMemo(() => {
     const arr = [...filtered]
@@ -137,9 +160,19 @@ export default function FirmsTable({ initialFirms }: Props) {
         marginBottom: 32,
       }}>
         {[
-          ['Total AUM', `${totalAum.toLocaleString()} M`],
+          [ 
+            'Total AUM', 
+            `${(totalAum / 1000000)
+                .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+             Trillion` 
+          ],
           ['# of Firms', countFirms],
-          ['Average AUM', `${avgAum.toLocaleString()} M`],
+          [
+            'Average AUM',
+            `${(avgAum / 1000)
+                .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+             B`
+          ],
           ['Date span', dateSpan],
         ].map(([label, val]) => (
           <div key={label} style={{
@@ -252,14 +285,15 @@ export default function FirmsTable({ initialFirms }: Props) {
       </div>
 
       {/* — FILTERED AUM — */}
-      <div style={{
+    <div style={{
         fontSize: 18,
         fontWeight: 600,
         textAlign: 'center',
         marginBottom: 16,
-      }}>
-        Filtered AUM: {filteredAum.toLocaleString()} M
-      </div>
+    }}>
+    Filtered AUM: {`${(filteredAum / 1000000)
+      .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Trillion`}
+    </div>
 
       {/* — DATA TABLE — */}
       <div style={{
