@@ -41,3 +41,24 @@ export async function fetchMeetings(): Promise<Meeting[]> {
     owner: String(r[3] ?? '').trim(),
   }));
 }
+
+export interface Firm {
+  name: string;
+  dateBooked: string;
+  aumMillions: number;
+}
+
+export async function fetchFirms(): Promise<Firm[]> {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: 'Firms!A:C', // Assuming columns are: Name, Date Booked, AUM (in millions)
+  });
+  const rows = res.data.values ?? [];
+  if (rows.length < 2) return [];
+
+  return rows.slice(1).map((r) => ({
+    name: String(r[0] ?? '').trim(),
+    dateBooked: String(r[1] ?? '').trim(),
+    aumMillions: Number(r[2] ?? 0),
+  }));
+}
