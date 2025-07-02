@@ -24,27 +24,41 @@ export default function FirmsTable({ initialFirms }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [showMedian, setShowMedian] = useState(true)
 
-  // ─── GROUP BOOKINGS ──────────────────────────────────────
-  const groupedFirms = useMemo(() => {
-    const map: Record<string, { name: string; dates: string[]; aumMillions: number }> = {}
-    initialFirms.forEach(f => {
-      if (!map[f.name]) {
-        map[f.name] = { name: f.name, dates: [f.dateBooked], aumMillions: f.aumMillions }
-      } else {
-        map[f.name].dates.push(f.dateBooked)
-        map[f.name].aumMillions = Math.max(map[f.name].aumMillions, f.aumMillions)
-      }
-    })
-    return Object.values(map).map(g => ({
+// ─── GROUP BOOKINGS ──────────────────────────────────────
+const groupedFirms = useMemo(() => {
+  const map: Record<string, { name: string; dates: string[]; aumMillions: number }> = {}
+  initialFirms.forEach(f => {
+    if (!map[f.name]) {
+      map[f.name] = { name: f.name, dates: [f.dateBooked], aumMillions: f.aumMillions }
+    } else {
+      map[f.name].dates.push(f.dateBooked)
+      map[f.name].aumMillions = Math.max(map[f.name].aumMillions, f.aumMillions)
+    }
+  })
+
+  return Object.values(map).map(g => {
+    // parse into Date objects once
+    const dateObjs = g.dates.map(d => new Date(d))
+    dateObjs.sort((a, b) => a.getTime() - b.getTime())
+
+    const earliest = dateObjs[0]
+    const latest   = dateObjs[dateObjs.length - 1]
+
+    return {
       name: g.name,
-      dateBooked: g.dates
-        .map(d => new Date(d))
-        .sort((a, b) => a.getTime() - b.getTime())
-        .map(d => `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`)
+      // human-friendly display
+      dateBooked: dateObjs
+        .map(d => `${d.getMonth()+1}/${d.getDate()}/${d.getFullYear()}`)
         .join(', '),
       aumMillions: g.aumMillions,
-    }))
-  }, [initialFirms])
+
+      // keep these around for sorting
+      earliest,
+      latest,
+    }
+  })
+}, [initialFirms])
+
 
   // ─── GPT ─────────────────────────────────────────────────
   const fetchSummary = async (name: string) => {
@@ -129,7 +143,7 @@ export default function FirmsTable({ initialFirms }: Props) {
       let cmp = 0
       if (sortKey === 'name') cmp = a.name.localeCompare(b.name)
       else if (sortKey === 'dateBooked')
-        cmp = new Date(a.dateBooked).getTime() - new Date(b.dateBooked).getTime()
+        cmp = a.latest.getTime() - b.latest.getTime()
       else cmp = a.aumMillions - b.aumMillions
       return direction === 'asc' ? cmp : -cmp
     })
