@@ -13,9 +13,19 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+type CustomTooltipProps = {
+  active?: boolean;
+  payload?: Array<{ payload: { count: number; quota: number } }>;
+  label?: string;
+};
 
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload || !payload.length) return null;
+const CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  label,
+}) => {
+  if (!active || !payload?.length) return null;
+
   const { count, quota } = payload[0].payload;
   const diff = count - quota;
   const arrow = diff >= 0 ? '▲' : '▼';
@@ -23,6 +33,7 @@ function CustomTooltip({ active, payload, label }: any) {
     ? `Above Quota: ${diff}`
     : `Below Quota: ${-diff}`;
   const color = diff >= 0 ? '#37ff00' : '#f87171';
+
   return (
     <div style={{
       background: '#1a1a1a',
@@ -39,7 +50,7 @@ function CustomTooltip({ active, payload, label }: any) {
       <div style={{ color: '#f87171' }}>Quota: {quota}</div>
     </div>
   );
-}
+};
 
 type Meeting = {
   date: string;
@@ -161,31 +172,26 @@ export default function Dashboard() {
               stroke="#cfcfcf"
             />
             <Tooltip content={<CustomTooltip />} />
-            <Tooltip
-              content={<CustomTooltip />}
-              contentStyle={{
-                background: '#1a1a1a',
-                border: 'none',
-                color: '#fff',
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="baseline"
-              stackId="gap"
-              stroke="none"
-              fill="transparent"
-            />
-            <Area
-              type="monotone"
-              dataKey="gap"
-              stackId="gap"
-              stroke="none"
-              fill="#37ff00"
-              fillOpacity={0.3}
-              isAnimationActive={false}
-              name="Above Quota"
-            />
+          {/* 1) fill under the Meetings Booked line */}
+           <Area
+             type="monotone"
+             dataKey="count"
+             stroke="none"
+             fill="#37ff00"
+             fillOpacity={0.3}
+             isAnimationActive={false}
+           />
+
+           {/* 2) mask under the Quota line (your chart-background color) */}
+           <Area
+             type="monotone"
+             dataKey="quota"
+             stroke="none"
+             fill="var(--background)"  /* or hard-code your glass-background color */
+             fillOpacity={1}
+             isAnimationActive={false}
+           />
+{/* 3) draw the lines on top so they stay visible */}
             <Line
               type="linear"
               dataKey="quota"
