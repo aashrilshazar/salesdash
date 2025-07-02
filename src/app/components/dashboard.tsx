@@ -13,6 +13,34 @@ import {
   CartesianGrid,
 } from 'recharts';
 
+
+function CustomTooltip({ active, payload, label }: any) {
+  if (!active || !payload || !payload.length) return null;
+  const { count, quota } = payload[0].payload;
+  const diff = count - quota;
+  const arrow = diff >= 0 ? '▲' : '▼';
+  const text  = diff >= 0
+    ? `Above Quota: ${diff}`
+    : `Below Quota: ${-diff}`;
+  const color = diff >= 0 ? '#37ff00' : '#f87171';
+  return (
+    <div style={{
+      background: '#1a1a1a',
+      padding: 12,
+      borderRadius: 4,
+      fontSize: 14,
+      color: '#fff'
+    }}>
+      <div><strong>{label}</strong></div>
+      <div style={{ color, margin: '4px 0' }}>
+        {arrow} {text}
+      </div>
+      <div>Meetings Booked: {count}</div>
+      <div style={{ color: '#f87171' }}>Quota: {quota}</div>
+    </div>
+  );
+}
+
 type Meeting = {
   date: string;
   title: string;
@@ -132,7 +160,9 @@ export default function Dashboard() {
               allowDecimals={false}
               stroke="#cfcfcf"
             />
+            <Tooltip content={<CustomTooltip />} />
             <Tooltip
+              content={<CustomTooltip />}
               contentStyle={{
                 background: '#1a1a1a',
                 border: 'none',
