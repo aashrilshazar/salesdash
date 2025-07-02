@@ -67,7 +67,14 @@ export default function Dashboard() {
   ].map((m) => ({
     ...m,
     gap: Math.abs(m.count - m.quota),
-    percent: m.quota > 0 ? Math.round((m.count / m.quota) * 100) : 0,
+    // under = “how far below”, over = “count/quota*100”
+    percent: m.quota > 0
+      ? (m.count >= m.quota
+        // 57 of 41 → 57/41≈1.39→139%
+        ? Math.round((m.count / m.quota) * 100)
+        // 8 of 10 → 1−(8/10)=0.2→20%
+        : Math.round((1 - m.count / m.quota) * 100))
+      : 0,
     baseline: Math.min(m.count, m.quota),
   }));
 
