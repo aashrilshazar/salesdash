@@ -124,7 +124,7 @@ nav a:hover {
 .metric-tile.all-time .value {
   font-size: 5rem;
   color: #facc15;
-  text-shadow: 0 0 7px #926c00;
+  text-shadow: 0 0 60px #926c00;
   filter: drop-shadow(0 0 10px #facc15);
 }
 
