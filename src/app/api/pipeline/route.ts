@@ -106,22 +106,25 @@ export async function GET() {
     console.log('Sample deal:', deals[0]) // Log first deal to verify
     
     return NextResponse.json({ deals })
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorCode = (error as any)?.code || undefined
+    
     console.error('Pipeline API Error:', {
-      message: error.message,
-      code: error.code,
-      errors: error.errors,
+      message: errorMessage,
+      code: errorCode,
+      errors: (error as any)?.errors,
     })
     
     // More specific error messages
-    if (error.code === 403) {
+    if (errorCode === 403) {
       return NextResponse.json(
         { error: 'Permission denied. Make sure the service account has access to the spreadsheet.' },
         { status: 403 }
       )
     }
     
-    if (error.code === 404 || error.message?.includes('Unable to parse range')) {
+    if (errorCode === 404 || errorMessage?.includes('Unable to parse range')) {
       return NextResponse.json(
         { error: 'Sheet "Pipeline" not found. Make sure you have a sheet named "Pipeline" in your spreadsheet.' },
         { status: 404 }
@@ -130,8 +133,8 @@ export async function GET() {
     
     return NextResponse.json(
       { 
-        error: error.message || 'Failed to fetch pipeline data',
-        code: error.code,
+        error: errorMessage || 'Failed to fetch pipeline data',
+        code: errorCode,
       },
       { status: 500 }
     )
