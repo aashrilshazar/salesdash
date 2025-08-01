@@ -1,4 +1,4 @@
-// src/app/api/pipeline/route.ts NEW
+// src/app/api/pipeline/route.ts
 import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
 
@@ -27,6 +27,11 @@ const stageMapping: Record<string, string> = {
   'not-now': 'not-now',
   'exploring-other-options': 'exploring-other-options',
   'not-interested': 'not-interested',
+}
+
+interface GoogleSheetsError extends Error {
+  code?: number | string
+  errors?: unknown[]
 }
 
 export async function GET() {
@@ -107,13 +112,14 @@ export async function GET() {
     
     return NextResponse.json({ deals })
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const errorCode = (error as any)?.code || undefined
+    const googleError = error as GoogleSheetsError
+    const errorMessage = googleError.message || 'Unknown error'
+    const errorCode = googleError.code
     
     console.error('Pipeline API Error:', {
       message: errorMessage,
       code: errorCode,
-      errors: (error as any)?.errors,
+      errors: googleError.errors,
     })
     
     // More specific error messages
@@ -124,7 +130,7 @@ export async function GET() {
       )
     }
     
-    if (errorCode === 404 || errorMessage?.includes('Unable to parse range')) {
+    if (errorCode === 404 || errorMessage.includes('Unable to parse range')) {
       return NextResponse.json(
         { error: 'Sheet "Pipeline" not found. Make sure you have a sheet named "Pipeline" in your spreadsheet.' },
         { status: 404 }
