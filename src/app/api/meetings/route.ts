@@ -8,7 +8,7 @@ export async function GET() {
     
     // Transform the raw array data into the expected format
     // Assuming your Meetings sheet has columns: Date, Title, Stage, Owner
-    const meetings = meetingsData.map((row: any[]) => ({
+    const meetings = meetingsData.map((row: string[]) => ({
       date: row[0] || '',
       title: row[1] || '',
       stage: row[2] || '',
