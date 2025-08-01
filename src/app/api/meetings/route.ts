@@ -1,28 +1,26 @@
 // src/app/api/meetings/route.ts
 import { NextResponse } from 'next/server'
 import { fetchMeetings } from '../../lib/googleSheets'
-import OpenAI from 'openai'
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  
-  // If a "name" query param is present, return a GPT summary
-  const name = searchParams.get('name')
-  if (name) {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You’re a concise research assistant.' },
-        { role: 'user', content: `Give me a 1–2 sentence summary of the private equity firm "${name}".` },
-      ],
-      max_tokens: 60,
-    })
-    const summary = resp.choices?.[0]?.message?.content?.trim() ?? ''
-    return NextResponse.json({ summary })
+export async function GET() {
+  try {
+    const meetingsData = await fetchMeetings()
+    
+    // Transform the raw array data into the expected format
+    // Assuming your Meetings sheet has columns: Date, Title, Stage, Owner
+    const meetings = meetingsData.map((row: any[]) => ({
+      date: row[0] || '',
+      title: row[1] || '',
+      stage: row[2] || '',
+      owner: row[3] || '',
+    }))
+    
+    return NextResponse.json(meetings)
+  } catch (error) {
+    console.error('Error fetching meetings:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch meetings data' },
+      { status: 500 }
+    )
   }
-
-  // Otherwise, fall back to returning meetings as before
-  const meetings = await fetchMeetings()
-  return NextResponse.json(meetings)
 }
