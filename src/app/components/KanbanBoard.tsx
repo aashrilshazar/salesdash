@@ -267,7 +267,7 @@ function StageColumn({ stage, deals, onDrop, onEdit, onDelete, onDragStart, onDr
         <span style={styles.stageCount}>{deals.length}</span>
       </div>
       
-      <div style={styles.dealsContainer}>
+      <div style={styles.dealsContainer} className="deals-scrollbar">
         {deals.map((deal) => (
           <DealCard 
             key={deal.id} 
@@ -279,6 +279,22 @@ function StageColumn({ stage, deals, onDrop, onEdit, onDelete, onDragStart, onDr
           />
         ))}
       </div>
+      <style>{`
+        .deals-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .deals-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 3px;
+        }
+        .deals-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 3px;
+        }
+        .deals-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      `}</style>
     </div>
   )
 }
@@ -501,10 +517,13 @@ const styles = {
   stageColumn: {
     flex: '0 0 300px',
     minHeight: '400px',
+    maxHeight: '600px',
     backgroundColor: 'rgba(24, 24, 27, 0.5)',
     borderRadius: '8px',
     padding: '16px',
     transition: 'all 0.2s',
+    display: 'flex',
+    flexDirection: 'column' as const,
   },
   auxiliaryColumn: {
     opacity: 0.8,
@@ -522,6 +541,7 @@ const styles = {
     gap: '8px',
     marginBottom: '16px',
     padding: '0 4px',
+    flexShrink: 0,
   },
   stageDot: {
     width: '12px',
@@ -549,6 +569,9 @@ const styles = {
     flexDirection: 'column' as const,
     gap: '8px',
     minHeight: '200px',
+    overflowY: 'auto' as const,
+    flex: 1,
+    paddingRight: '4px',
   },
   dealCard: {
     backgroundColor: 'rgba(39, 39, 42, 0.8)',
