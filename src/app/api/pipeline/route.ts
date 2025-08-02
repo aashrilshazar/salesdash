@@ -2,9 +2,7 @@
 import { NextResponse } from 'next/server'
 import { google } from 'googleapis'
 
-// Map of human-readable stage names to stage IDs
 const stageMapping: Record<string, string> = {
-  // Main stages
   'Meeting Booked': 'meeting-booked',
   'Active Conversation': 'active-conversation',
   'NDA (Considering)': 'nda-considering',
@@ -12,11 +10,9 @@ const stageMapping: Record<string, string> = {
   'Documents Uploaded': 'documents-uploaded',
   'Contract Negotiations': 'contract-negotiations',
   'Won': 'won',
-  // Auxiliary stages
   'Not Now': 'not-now',
   'Exploring Other Options': 'exploring-other-options',
   'Not Interested': 'not-interested',
-  // Also support the kebab-case versions
   'meeting-booked': 'meeting-booked',
   'active-conversation': 'active-conversation',
   'nda-considering': 'nda-considering',
@@ -29,120 +25,180 @@ const stageMapping: Record<string, string> = {
   'not-interested': 'not-interested',
 }
 
-interface GoogleSheetsError extends Error {
-  code?: number | string
-  errors?: unknown[]
+// Reverse mapping for writing back to sheets
+const reverseStageMapping: Record<string, string> = {
+  'meeting-booked': 'meeting-booked',
+  'active-conversation': 'active-conversation',
+  'nda-considering': 'nda-considering',
+  'nda-signed': 'nda-signed',
+  'documents-uploaded': 'documents-uploaded',
+  'contract-negotiations': 'contract-negotiations',
+  'won': 'won',
+  'not-now': 'not-now',
+  'exploring-other-options': 'exploring-other-options',
+  'not-interested': 'not-interested',
+}
+
+function getAuth() {
+  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY
+  
+  if (!clientEmail || !privateKey) {
+    throw new Error('Missing Google credentials')
+  }
+  
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: clientEmail,
+      private_key: privateKey.replace(/\\n/g, '\n'),
+    },
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
 }
 
 export async function GET() {
   try {
-    // Get environment variables directly in the route
     const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
-    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-    const privateKey = process.env.GOOGLE_PRIVATE_KEY
+    if (!spreadsheetId) throw new Error('Missing spreadsheet ID')
     
-    console.log('Direct env check in route:', {
-      hasSpreadsheetId: !!spreadsheetId,
-      spreadsheetIdLength: spreadsheetId?.length,
-      hasClientEmail: !!clientEmail,
-      hasPrivateKey: !!privateKey,
-    })
-    
-    if (!spreadsheetId || !clientEmail || !privateKey) {
-      return NextResponse.json(
-        { 
-          error: 'Missing environment variables',
-          debug: {
-            hasSpreadsheetId: !!spreadsheetId,
-            hasClientEmail: !!clientEmail,
-            hasPrivateKey: !!privateKey,
-          }
-        },
-        { status: 500 }
-      )
-    }
-    
-    // Initialize Google Sheets
-    const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: clientEmail,
-        private_key: privateKey.replace(/\\n/g, '\n'),
-      },
-      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-    })
-    
+    const auth = getAuth()
     const sheets = google.sheets({ version: 'v4', auth })
     
-    console.log('Attempting to fetch from spreadsheet:', spreadsheetId.substring(0, 10) + '...')
-    
-    // Fetch data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Pipeline!A2:H',
     })
     
     const rows = response.data.values || []
-    console.log(`Successfully fetched ${rows.length} rows`)
     
-    // Transform data with stage normalization
-    const deals = rows.map((row, index) => {
-      const originalStage = row[1] || ''
-      const normalizedStage = stageMapping[originalStage] || 'not-now' // Default to 'not-now' if unknown
-      
-      // Log any unmapped stages
-      if (originalStage && !stageMapping[originalStage]) {
-        console.warn(`Unknown stage "${originalStage}" for ${row[0]}, defaulting to "not-now"`)
-      }
-      
-      return {
-        id: (index + 1).toString(),
-        firmName: row[0] || '',
-        stage: normalizedStage,
-        createdAt: row[2] || '',
-        lastActivity: row[3] || '',
-        value: row[4] || '',
-        contactCount: parseInt(row[5]) || 0,
-        emailCount: parseInt(row[6]) || 0,
-        meetingCount: parseInt(row[7]) || 0,
-        noteCount: 0,
-      }
-    })
-    
-    console.log('Sample deal:', deals[0]) // Log first deal to verify
+    const deals = rows.map((row, index) => ({
+      id: (index + 2).toString(), // Row number in sheet
+      firmName: row[0] || '',
+      stage: stageMapping[row[1]] || 'not-now',
+      createdAt: row[2] || '',
+      lastActivity: row[3] || '',
+      value: row[4] || '',
+      contactCount: parseInt(row[5]) || 0,
+      emailCount: parseInt(row[6]) || 0,
+      meetingCount: parseInt(row[7]) || 0,
+      noteCount: 0,
+    }))
     
     return NextResponse.json({ deals })
-  } catch (error: unknown) {
-    const googleError = error as GoogleSheetsError
-    const errorMessage = googleError.message || 'Unknown error'
-    const errorCode = googleError.code
+  } catch (error) {
+    console.error('GET Error:', error)
+    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 })
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
+    if (!spreadsheetId) throw new Error('Missing spreadsheet ID')
     
-    console.error('Pipeline API Error:', {
-      message: errorMessage,
-      code: errorCode,
-      errors: googleError.errors,
+    const data = await request.json()
+    const auth = getAuth()
+    const sheets = google.sheets({ version: 'v4', auth })
+    
+    // Get current data to find next empty row
+    const currentData = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'Pipeline!A:A',
     })
     
-    // More specific error messages
-    if (errorCode === 403) {
-      return NextResponse.json(
-        { error: 'Permission denied. Make sure the service account has access to the spreadsheet.' },
-        { status: 403 }
-      )
-    }
+    const nextRow = (currentData.data.values?.length || 1) + 1
     
-    if (errorCode === 404 || errorMessage.includes('Unable to parse range')) {
-      return NextResponse.json(
-        { error: 'Sheet "Pipeline" not found. Make sure you have a sheet named "Pipeline" in your spreadsheet.' },
-        { status: 404 }
-      )
-    }
+    // Prepare new row data
+    const values = [[
+      data.firmName,
+      reverseStageMapping[data.stage] || data.stage,
+      data.createdAt || new Date().toLocaleDateString(),
+      data.lastActivity || new Date().toLocaleDateString(),
+      data.value || '',
+      data.contactCount || 0,
+      data.emailCount || 0,
+      data.meetingCount || 0,
+    ]]
     
-    return NextResponse.json(
-      { 
-        error: errorMessage || 'Failed to fetch pipeline data',
-        code: errorCode,
-      },
-      { status: 500 }
-    )
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: 'Pipeline!A:H',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values },
+    })
+    
+    return NextResponse.json({ 
+      success: true, 
+      id: nextRow.toString(),
+      deal: { ...data, id: nextRow.toString() }
+    })
+  } catch (error) {
+    console.error('POST Error:', error)
+    return NextResponse.json({ error: 'Failed to create deal' }, { status: 500 })
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
+    if (!spreadsheetId) throw new Error('Missing spreadsheet ID')
+    
+    const data = await request.json()
+    const auth = getAuth()
+    const sheets = google.sheets({ version: 'v4', auth })
+    
+    const row = parseInt(data.id)
+    const range = `Pipeline!A${row}:H${row}`
+    
+    const values = [[
+      data.firmName,
+      reverseStageMapping[data.stage] || data.stage,
+      data.createdAt,
+      data.lastActivity || new Date().toLocaleDateString(),
+      data.value || '',
+      data.contactCount || 0,
+      data.emailCount || 0,
+      data.meetingCount || 0,
+    ]]
+    
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values },
+    })
+    
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('PUT Error:', error)
+    return NextResponse.json({ error: 'Failed to update deal' }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID
+    if (!spreadsheetId) throw new Error('Missing spreadsheet ID')
+    
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) throw new Error('Missing deal ID')
+    
+    const auth = getAuth()
+    const sheets = google.sheets({ version: 'v4', auth })
+    
+    // Clear the row (Google Sheets API doesn't support deleting rows easily)
+    const row = parseInt(id)
+    const range = `Pipeline!A${row}:H${row}`
+    
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range,
+    })
+    
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('DELETE Error:', error)
+    return NextResponse.json({ error: 'Failed to delete deal' }, { status: 500 })
   }
 }
