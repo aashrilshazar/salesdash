@@ -66,7 +66,7 @@ export async function GET() {
     
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'Pipeline!A2:H',
+      range: 'Pipeline!A2:E', // Only columns A-E
     })
     
     const rows = response.data.values || []
@@ -75,12 +75,14 @@ export async function GET() {
       id: (index + 2).toString(), // Row number in sheet
       firmName: row[0] || '',
       stage: stageMapping[row[1]] || 'not-now',
-      createdAt: row[2] || '',
+      value: row[2] || '',
       lastActivity: row[3] || '',
-      value: row[4] || '',
-      contactCount: parseInt(row[5]) || 0,
-      emailCount: parseInt(row[6]) || 0,
-      meetingCount: parseInt(row[7]) || 0,
+      note: row[4] || '',
+      // Default values for unused fields
+      createdAt: '',
+      contactCount: 0,
+      emailCount: 0,
+      meetingCount: 0,
       noteCount: 0,
     }))
     
@@ -108,21 +110,18 @@ export async function POST(request: Request) {
     
     const nextRow = (currentData.data.values?.length || 1) + 1
     
-    // Prepare new row data
+    // Prepare new row data (A-E only)
     const values = [[
       data.firmName,
       reverseStageMapping[data.stage] || data.stage,
-      data.createdAt || new Date().toLocaleDateString(),
-      data.lastActivity || new Date().toLocaleDateString(),
       data.value || '',
-      data.contactCount || 0,
-      data.emailCount || 0,
-      data.meetingCount || 0,
+      data.lastActivity || '',
+      data.note || '',
     ]]
     
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: 'Pipeline!A:H',
+      range: 'Pipeline!A:E',
       valueInputOption: 'USER_ENTERED',
       requestBody: { values },
     })
@@ -148,17 +147,14 @@ export async function PUT(request: Request) {
     const sheets = google.sheets({ version: 'v4', auth })
     
     const row = parseInt(data.id)
-    const range = `Pipeline!A${row}:H${row}`
+    const range = `Pipeline!A${row}:E${row}` // Only columns A-E
     
     const values = [[
       data.firmName,
       reverseStageMapping[data.stage] || data.stage,
-      data.createdAt,
-      data.lastActivity || new Date().toLocaleDateString(),
       data.value || '',
-      data.contactCount || 0,
-      data.emailCount || 0,
-      data.meetingCount || 0,
+      data.lastActivity || '',
+      data.note || '',
     ]]
     
     await sheets.spreadsheets.values.update({
@@ -189,7 +185,7 @@ export async function DELETE(request: Request) {
     
     // Clear the row (Google Sheets API doesn't support deleting rows easily)
     const row = parseInt(id)
-    const range = `Pipeline!A${row}:H${row}`
+    const range = `Pipeline!A${row}:E${row}` // Only columns A-E
     
     await sheets.spreadsheets.values.clear({
       spreadsheetId,

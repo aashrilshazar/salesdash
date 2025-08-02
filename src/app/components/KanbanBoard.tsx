@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import React from 'react'
 
 interface Deal {
@@ -14,6 +14,7 @@ interface Deal {
   emailCount: number
   meetingCount: number
   noteCount: number
+  note?: string
 }
 
 interface Stage {
@@ -48,11 +49,12 @@ function DealFormModal({ isOpen, onClose, onSubmit, initialData = null }: {
     firmName: '',
     stage: 'meeting-booked',
     createdAt: new Date().toLocaleDateString(),
-    lastActivity: new Date().toLocaleDateString(),
+    lastActivity: '',
     value: '',
     contactCount: 0,
     emailCount: 0,
     meetingCount: 0,
+    note: '',
   })
 
   useEffect(() => {
@@ -66,6 +68,7 @@ function DealFormModal({ isOpen, onClose, onSubmit, initialData = null }: {
         contactCount: initialData.contactCount,
         emailCount: initialData.emailCount,
         meetingCount: initialData.meetingCount,
+        note: initialData.note || '',
       })
     }
   }, [initialData])
@@ -121,36 +124,25 @@ function DealFormModal({ isOpen, onClose, onSubmit, initialData = null }: {
             />
           </div>
 
-          <div style={styles.formRow}>
-            <div style={styles.formGroup}>
-              <div style={styles.label}>Contact Count</div>
-              <input
-                type="number"
-                value={formData.contactCount}
-                onChange={e => setFormData(prev => ({ ...prev, contactCount: parseInt(e.target.value) || 0 }))}
-                style={styles.input}
-              />
-            </div>
+          <div style={styles.formGroup}>
+            <div style={styles.label}>Date of Last Meeting</div>
+            <input
+              type="text"
+              value={formData.lastActivity}
+              onChange={e => setFormData(prev => ({ ...prev, lastActivity: e.target.value }))}
+              style={styles.input}
+              placeholder="Enter date or description"
+            />
+          </div>
 
-            <div style={styles.formGroup}>
-              <div style={styles.label}>Email Count</div>
-              <input
-                type="number"
-                value={formData.emailCount}
-                onChange={e => setFormData(prev => ({ ...prev, emailCount: parseInt(e.target.value) || 0 }))}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formGroup}>
-              <div style={styles.label}>Meeting Count</div>
-              <input
-                type="number"
-                value={formData.meetingCount}
-                onChange={e => setFormData(prev => ({ ...prev, meetingCount: parseInt(e.target.value) || 0 }))}
-                style={styles.input}
-              />
-            </div>
+          <div style={styles.formGroup}>
+            <div style={styles.label}>Note</div>
+            <textarea
+              value={formData.note}
+              onChange={e => setFormData(prev => ({ ...prev, note: e.target.value }))}
+              style={{...styles.input, minHeight: '60px', resize: 'vertical' as const}}
+              placeholder="Add any additional notes..."
+            />
           </div>
 
           <div style={styles.formActions}>
@@ -217,16 +209,12 @@ function DealCard({ deal, onEdit, onDelete, onDragStart, onDragEnd }: {
         <div style={styles.dealValue}>{formatValue(deal.value)}</div>
       )}
       
-      <div style={styles.dealMetrics}>
-        {deal.contactCount > 0 && <span style={styles.dealMetric}>👤 {deal.contactCount}</span>}
-        {deal.emailCount > 0 && <span style={styles.dealMetric}>✉️ {deal.emailCount}</span>}
-        {deal.meetingCount > 0 && <span style={styles.dealMetric}>📅 {deal.meetingCount}</span>}
-        {deal.noteCount > 0 && <span style={styles.dealMetric}>📝 {deal.noteCount}</span>}
-      </div>
+      {deal.note && (
+        <div style={styles.dealNote}>{deal.note}</div>
+      )}
       
       <div style={styles.dealTimestamps}>
-        {deal.createdAt && <span style={styles.timestamp}>⏱ {deal.createdAt}</span>}
-        <span style={styles.timestamp}>⏰ {deal.lastActivity}</span>
+        <span style={styles.timestamp}>Date of last meeting: {deal.lastActivity}</span>
       </div>
     </div>
   )
@@ -383,7 +371,7 @@ export default function KanbanBoard() {
       })
       
       if (!response.ok) throw new Error('Failed to update stage')
-    } catch (err) {
+    } catch {
       // Revert on error
       await fetchData()
       setError('Failed to update stage')
@@ -635,28 +623,21 @@ const styles = {
     color: '#22c55e',
     marginBottom: '8px',
   },
-  dealMetrics: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '8px',
-    fontSize: '12px',
+  dealNote: {
+    fontSize: '13px',
     color: '#9ca3af',
-  },
-  dealMetric: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
+    marginBottom: '8px',
+    lineHeight: 1.4,
+    fontStyle: 'italic' as const,
   },
   dealTimestamps: {
-    display: 'flex',
-    gap: '12px',
     fontSize: '12px',
     color: '#6b7280',
+    marginTop: '8px',
   },
   timestamp: {
     display: 'flex',
     alignItems: 'center',
-    gap: '4px',
   },
   loadingContainer: {
     display: 'flex',
@@ -768,12 +749,6 @@ const styles = {
     marginBottom: '20px',
   },
   formGroup: {
-    marginBottom: '16px',
-  },
-  formRow: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gap: '12px',
     marginBottom: '16px',
   },
   label: {
