@@ -106,7 +106,7 @@ export default function Dashboard() {
   ].map((m) => ({
     ...m,
     gap: Math.abs(m.count - m.quota),
-    // under = “how far below”, over = “count/quota*100”
+    // under = "how far below", over = "count/quota*100"
     percent: m.quota > 0
       ? (m.count >= m.quota
         // 57 of 41 → 57/41≈1.39→139%
@@ -170,6 +170,7 @@ export default function Dashboard() {
               }}
               allowDecimals={false}
               stroke="#cfcfcf"
+              domain={[0, 410]}
             />
             <Tooltip content={<CustomTooltip />} />
           {/* 1) fill under the Meetings Booked line */}
