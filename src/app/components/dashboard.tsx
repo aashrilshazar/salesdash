@@ -131,7 +131,7 @@ export default function Dashboard() {
     x: number;
     y: number;
     payload: { value: number | string };
-    textAnchor?: string;
+    textAnchor?: 'inherit' | 'start' | 'middle' | 'end';
   }) => {
     const numericValue = typeof payload.value === 'number'
       ? payload.value
@@ -145,7 +145,7 @@ export default function Dashboard() {
         dy={4}
         fontSize={12}
         textAnchor={textAnchor ?? 'end'}
-        fill={isMaxTick ? 'var(--background)' : '#cfcfcf'}
+        fill={isMaxTick ? '#0a0a0a' : '#cfcfcf'}
       >
         {payload.value}
       </text>
