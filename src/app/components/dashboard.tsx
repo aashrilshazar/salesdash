@@ -36,18 +36,23 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({
 
   return (
     <div style={{
-      background: '#1a1a1a',
-      padding: 12,
-      borderRadius: 4,
+      background: 'rgba(10, 14, 28, 0.92)',
+      padding: '16px 18px',
+      borderRadius: 14,
+      border: '1px solid rgba(82, 196, 255, 0.35)',
+      boxShadow: '0 18px 48px rgba(5, 8, 16, 0.65)',
       fontSize: 14,
-      color: '#fff'
+      color: '#f4f7fb',
+      minWidth: 180
     }}>
-      <div><strong>{label}</strong></div>
-      <div style={{ color, margin: '4px 0' }}>
+      <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8a93ad' }}>
+        {label}
+      </div>
+      <div style={{ color, margin: '8px 0 6px', fontWeight: 600 }}>
         {arrow} {text}
       </div>
-      <div>Meetings Booked: {count}</div>
-      <div style={{ color: '#f87171' }}>Quota: {quota}</div>
+      <div style={{ marginBottom: 2 }}>Meetings Booked: <strong>{count}</strong></div>
+      <div style={{ color: '#f87171' }}>Quota: <strong>{quota}</strong></div>
     </div>
   );
 };
@@ -145,7 +150,7 @@ export default function Dashboard() {
         dy={4}
         fontSize={12}
         textAnchor={textAnchor ?? 'end'}
-        fill={isMaxTick ? '#0a0a0a' : '#cfcfcf'}
+        fill={isMaxTick ? 'var(--background)' : '#cfcfcf'}
       >
         {payload.value}
       </text>
@@ -154,8 +159,8 @@ export default function Dashboard() {
 
   const renderChartLegend = () => {
     const items = [
-      { label: 'Bonus', color: '#37ff00' },
-      { label: 'Quota', color: '#f87171' },
+      { label: 'Bonus', color: '#37ff00', glow: '0 0 16px rgba(55, 255, 0, 0.45)' },
+      { label: 'Quota', color: '#f87171', glow: '0 0 16px rgba(248, 113, 113, 0.45)' },
     ];
 
     return (
@@ -164,7 +169,8 @@ export default function Dashboard() {
           display: 'flex',
           justifyContent: 'flex-end',
           width: '100%',
-          gap: 20,
+          gap: 24,
+          paddingRight: 12,
         }}
       >
         {items.map((item) => (
@@ -173,20 +179,24 @@ export default function Dashboard() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              color: '#cfcfcf',
-              fontSize: 14,
+              gap: 10,
+              color: '#8a93ad',
+              fontSize: 13,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
             }}
           >
             <span
               style={{
                 display: 'inline-block',
-                width: 18,
-                height: 3,
+                width: 26,
+                height: 4,
                 backgroundColor: item.color,
+                borderRadius: 999,
+                boxShadow: item.glow,
               }}
             />
-            <span>{item.label}</span>
+            <span style={{ color: '#f4f7fb' }}>{item.label}</span>
           </div>
         ))}
       </div>
