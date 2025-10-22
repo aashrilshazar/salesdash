@@ -21,10 +21,10 @@ body {
   font-family: 'Inter', sans-serif;
   color: var(--foreground);
   background:
-    radial-gradient(circle at 15% 20%, rgba(88, 203, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 85% 10%, rgba(191, 128, 255, 0.16), transparent 60%),
-    radial-gradient(circle at 50% 100%, rgba(55, 255, 0, 0.12), transparent 70%),
-    var(--background);
+    radial-gradient(circle at 15% 20%, rgba(88, 203, 255, 0.08), transparent 55%),
+    radial-gradient(circle at 85% 10%, rgba(191, 128, 255, 0.06), transparent 60%),
+    radial-gradient(circle at 50% 100%, rgba(55, 255, 0, 0.05), transparent 70%),
+    #020206;
   -webkit-font-smoothing: antialiased;
   position: relative;
 }
@@ -35,8 +35,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    linear-gradient(120deg, rgba(81, 156, 255, 0.1), transparent 50%),
-    radial-gradient(circle at 20% 80%, rgba(55, 255, 0, 0.08), transparent 65%);
+    linear-gradient(120deg, rgba(81, 156, 255, 0.06), transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(55, 255, 0, 0.05), transparent 65%);
   mix-blend-mode: screen;
   z-index: -1;
 }
@@ -178,6 +178,9 @@ nav a:hover {
   letter-spacing: -0.02em;
   color: var(--foreground);
   text-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  align-self: center;
+  text-align: center;
+  width: 100%;
 }
 
 .metric-tile.all-time {
