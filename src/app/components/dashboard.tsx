@@ -122,29 +122,76 @@ export default function Dashboard() {
   );
   const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 1;
 
-  const renderBonusLegend = () => (
-    <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+  const renderYAxisTick = ({
+    x,
+    y,
+    payload,
+    textAnchor,
+  }: {
+    x: number;
+    y: number;
+    payload: { value: number | string };
+    textAnchor?: string;
+  }) => {
+    const numericValue = typeof payload.value === 'number'
+      ? payload.value
+      : Number(payload.value);
+    const isMaxTick = !Number.isNaN(numericValue) && numericValue >= yAxisMax;
+
+    return (
+      <text
+        x={x}
+        y={y}
+        dy={4}
+        fontSize={12}
+        textAnchor={textAnchor ?? 'end'}
+        fill={isMaxTick ? 'var(--background)' : '#cfcfcf'}
+      >
+        {payload.value}
+      </text>
+    );
+  };
+
+  const renderChartLegend = () => {
+    const items = [
+      { label: 'Bonus', color: '#37ff00' },
+      { label: 'Quota', color: '#f87171' },
+    ];
+
+    return (
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          color: '#cfcfcf',
-          fontSize: 14,
+          justifyContent: 'flex-end',
+          width: '100%',
+          gap: 20,
         }}
       >
-        <span
-          style={{
-            display: 'inline-block',
-            width: 18,
-            height: 3,
-            backgroundColor: '#37ff00',
-          }}
-        />
-        <span>Bonus</span>
+        {items.map((item) => (
+          <div
+            key={item.label}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              color: '#cfcfcf',
+              fontSize: 14,
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                width: 18,
+                height: 3,
+                backgroundColor: item.color,
+              }}
+            />
+            <span>{item.label}</span>
+          </div>
+        ))}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <section className="dashboard">
@@ -182,7 +229,7 @@ export default function Dashboard() {
             <CartesianGrid stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
             <Legend
               wrapperStyle={{ paddingBottom: 8 }}
-              content={renderBonusLegend}
+              content={renderChartLegend}
             />
             <XAxis dataKey="label" stroke="#cfcfcf" />
             <YAxis
@@ -196,6 +243,7 @@ export default function Dashboard() {
               allowDecimals={false}
               stroke="#cfcfcf"
               domain={[0, yAxisMax]}
+              tick={renderYAxisTick}
             />
             <Tooltip content={<CustomTooltip />} />
             {/* 1) fill under the Meetings Booked line */}
