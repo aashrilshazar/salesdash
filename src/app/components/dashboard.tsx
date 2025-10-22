@@ -117,6 +117,35 @@ export default function Dashboard() {
     baseline: Math.min(m.count, m.quota),
   }));
 
+  const maxValue = Math.max(
+    ...metrics.map((metric) => Math.max(metric.count, metric.quota))
+  );
+  const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 1;
+
+  const renderBonusLegend = () => (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', width: '100%' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          color: '#cfcfcf',
+          fontSize: 14,
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            width: 18,
+            height: 3,
+            backgroundColor: '#37ff00',
+          }}
+        />
+        <span>Bonus</span>
+      </div>
+    </div>
+  );
+
   return (
     <section className="dashboard">
       <div className="metric-grid">
@@ -152,12 +181,8 @@ export default function Dashboard() {
           <ComposedChart data={metrics}>
             <CartesianGrid stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
             <Legend
-              align="right"
-              verticalAlign="top"
-              layout="horizontal"
-              iconType="plainline"
-              iconSize={15}
               wrapperStyle={{ paddingBottom: 8 }}
+              content={renderBonusLegend}
             />
             <XAxis dataKey="label" stroke="#cfcfcf" />
             <YAxis
@@ -170,31 +195,31 @@ export default function Dashboard() {
               }}
               allowDecimals={false}
               stroke="#cfcfcf"
-              domain={[0, 410]}
+              domain={[0, yAxisMax]}
             />
             <Tooltip content={<CustomTooltip />} />
-          {/* 1) fill under the Meetings Booked line */}
-           <Area
-             type="monotone"
-             dataKey="count"
-             stroke="none"
-             fill="#37ff00"
-             fillOpacity={0.3}
-             isAnimationActive={false}
-           />
+            {/* 1) fill under the Meetings Booked line */}
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke="none"
+              fill="#37ff00"
+              fillOpacity={0.3}
+              isAnimationActive={false}
+            />
 
-           {/* 2) mask under the Quota line (your chart-background color) */}
-           <Area
-             type="monotone"
-             dataKey="quota"
-             stroke="none"
-             fill="var(--background)"  /* or hard-code your glass-background color */
-             fillOpacity={1}
-             isAnimationActive={false}
-           />
-{/* 3) draw the lines on top so they stay visible */}
+            {/* 2) mask under the Quota line (your chart-background color) */}
+            <Area
+              type="monotone"
+              dataKey="quota"
+              stroke="none"
+              fill="var(--background)" /* or hard-code your glass-background color */
+              fillOpacity={1}
+              isAnimationActive={false}
+            />
+            {/* 3) draw the lines on top so they stay visible */}
             <Line
-              type="linear"
+              type="monotone"
               dataKey="quota"
               stroke="#f87171"
               strokeWidth={2}
