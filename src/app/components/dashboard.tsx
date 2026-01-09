@@ -12,7 +12,6 @@ type Meeting = {
 const fetcher = (url: string) =>
   fetch(url).then((res) => res.json() as Promise<Meeting[]>);
 
-const MS_DAY = 86_400_000;
 const fmt = (d: Date) =>
   d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
