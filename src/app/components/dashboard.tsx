@@ -98,8 +98,8 @@ export default function Dashboard() {
 
   const metrics = [
     buildMetric('Last 7 Days', 7),
-    buildMetric('Last 30 Days', 30),
     buildMetric('Last 90 Days', 90),
+    buildMetric('Last 180 Days', 180),
     {
       label: 'All Time',
       count: data.length,
