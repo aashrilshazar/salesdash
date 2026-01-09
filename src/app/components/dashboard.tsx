@@ -98,6 +98,8 @@ export default function Dashboard() {
 
   const metrics = [
     buildMetric('Last 7 Days', 7),
+    buildMetric('Last 30 Days', 30),
+    buildMetric('Last 90 Days', 90),
     {
       label: 'All Time',
       count: data.length,
@@ -203,35 +205,20 @@ export default function Dashboard() {
 
   return (
     <section className="dashboard">
-      {/* Last 7 Days and All Time side-by-side */}
-      <div className="summary-row">
-        <div className="glass metric-tile">
-          <small>LAST 7 DAYS</small>
-          <small className="range">{metrics[0].rangeLabel}</small>
-          <span className="value">{metrics[0].count}</span>
-          <small
-            className={`delta ${
-              metrics[0].count >= metrics[0].quota ? 'positive' : 'negative'
-            }`}
-          >
-            {metrics[0].count >= metrics[0].quota ? '▲ ' : '▼ '}
-            {metrics[0].percent}%
-          </small>
-        </div>
+      <div className="metric-grid">
+        {metrics.slice(0, 3).map((m) => (
+          <div key={m.label} className="glass metric-tile">
+            <small>{m.label.toUpperCase()}</small>
+            <small className="range">{m.rangeLabel}</small>
+            <span className="value">{m.count}</span>
+          </div>
+        ))}
+      </div>
 
-        <div className="glass metric-tile all-time">
-          <small>ALL TIME</small>
-          <small className="range">{metrics[1].rangeLabel}</small>
-          <span className="value at">{metrics[1].count}</span>
-          <small
-            className={`delta ${
-              metrics[1].count >= metrics[1].quota ? 'positive' : 'negative'
-            }`}
-          >
-            {metrics[1].count >= metrics[1].quota ? '▲ ' : '▼ '}
-            {metrics[1].percent}%
-          </small>
-        </div>
+      <div className="glass metric-tile all-time">
+        <small>ALL TIME</small>
+        <small className="range">{metrics[3].rangeLabel}</small>
+        <span className="value at">{metrics[3].count}</span>
       </div>
 
       <div className="glass chart-wrap">
