@@ -61,19 +61,48 @@ export default function Dashboard() {
   if (!data) return <p className="glass pad">Loading…</p>;
 
   const now = Date.now();
+  const earliest = Math.min(...data.map((m) => +new Date(m.date)));
 
-  // Count meetings up to each checkpoint
-  const countMeetingsBefore = (daysAgo: number) => {
-    const cutoff = now - daysAgo * MS_DAY;
-    return data.filter((m) => +new Date(m.date) <= cutoff).length;
+  const buildMetric = (label: string, d: number) => {
+    const endDate = new Date();
+    const startDate = new Date(now - d * MS_DAY);
+    const count = data.filter(
+      (m) => +new Date(m.date) >= startDate.getTime()
+    ).length;
+    const quota = Math.round(d * quotaPerDay);
+    return {
+      label,
+      rangeLabel: `${fmt(startDate)} – ${fmt(endDate)}`,
+      count,
+      quota,
+    };
   };
 
-  const chartData = [
-    { label: '270 Days Ago', count: countMeetingsBefore(270) },
-    { label: '180 Days Ago', count: countMeetingsBefore(180) },
-    { label: '90 Days Ago', count: countMeetingsBefore(90) },
-    { label: 'Today', count: data.length },
-  ];
+  const metrics = [
+    buildMetric('Last 7 Days', 7),
+    buildMetric('Last 30 Days', 30),
+    buildMetric('Last 90 Days', 90),
+    {
+      label: 'All Time',
+      count: data.length,
+      startDate: new Date(earliest),
+      endDate: new Date(now),
+      rangeLabel: `${fmt(new Date(earliest))} – ${fmt(new Date(now))}`,
+      quota: Math.round(((now - earliest) / MS_DAY) * quotaPerDay),
+    },
+  ].map((m) => ({
+    ...m,
+    gap: Math.abs(m.count - m.quota),
+    // under = "how far below", over = "count/quota*100"
+    percent: m.quota > 0
+      ? (m.count >= m.quota
+        // 57 of 41 → 57/41≈1.39→139%
+        ? Math.round((m.count / m.quota) * 100)
+        // 8 of 10 → 1−(8/10)=0.2→20%
+        : Math.round((1 - m.count / m.quota) * 100))
+      : 0,
+    baseline: Math.min(m.count, m.quota),
+  }));
 
   const maxValue = Math.max(...chartData.map((d) => d.count));
   const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 1;
