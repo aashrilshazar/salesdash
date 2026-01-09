@@ -23,6 +23,9 @@ const fetcher = (url: string) =>
   fetch(url).then((res) => res.json() as Promise<Meeting[]>);
 
 const MS_DAY = 86_400_000;
+const quotaPerDay = 40 / 29.45;
+const fmt = (d: Date) =>
+  d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 type CustomTooltipProps = {
   active?: boolean;
@@ -78,10 +81,10 @@ export default function Dashboard() {
     };
   };
 
-  const metrics = [
+  const chartData = [
     buildMetric('Last 7 Days', 7),
-    buildMetric('Last 30 Days', 30),
     buildMetric('Last 90 Days', 90),
+    buildMetric('Last 180 Days', 180),
     {
       label: 'All Time',
       count: data.length,
@@ -90,19 +93,7 @@ export default function Dashboard() {
       rangeLabel: `${fmt(new Date(earliest))} – ${fmt(new Date(now))}`,
       quota: Math.round(((now - earliest) / MS_DAY) * quotaPerDay),
     },
-  ].map((m) => ({
-    ...m,
-    gap: Math.abs(m.count - m.quota),
-    // under = "how far below", over = "count/quota*100"
-    percent: m.quota > 0
-      ? (m.count >= m.quota
-        // 57 of 41 → 57/41≈1.39→139%
-        ? Math.round((m.count / m.quota) * 100)
-        // 8 of 10 → 1−(8/10)=0.2→20%
-        : Math.round((1 - m.count / m.quota) * 100))
-      : 0,
-    baseline: Math.min(m.count, m.quota),
-  }));
+  ];
 
   const maxValue = Math.max(...chartData.map((d) => d.count));
   const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 1;
