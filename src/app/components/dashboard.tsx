@@ -69,7 +69,6 @@ const fetcher = (url: string) =>
 
 const MS_DAY = 86_400_000;
 const quotaPerDay = 40 / 29.45;
-const YEAR_2026_START = new Date('2026-01-05T00:00:00').getTime();
 const fmt = (d: Date) =>
   d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -97,24 +96,8 @@ export default function Dashboard() {
     };
   };
 
-  // Calculate 2026 metric
-  const year2026Count = data.filter(
-    (m) => +new Date(m.date) >= YEAR_2026_START
-  ).length;
-  const days2026 = now >= YEAR_2026_START
-    ? (now - YEAR_2026_START) / MS_DAY
-    : 0;
-
   const metrics = [
     buildMetric('Last 7 Days', 7),
-    buildMetric('Last 30 Days', 30),
-    buildMetric('Last 90 Days', 90),
-    {
-      label: '2026',
-      count: year2026Count,
-      rangeLabel: `Jan 5, 2026 – ${fmt(new Date(now))}`,
-      quota: Math.round(days2026 * quotaPerDay),
-    },
     {
       label: 'All Time',
       count: data.length,
@@ -220,49 +203,33 @@ export default function Dashboard() {
 
   return (
     <section className="dashboard">
-      <div className="metric-grid">
-        {metrics.slice(0, 3).map((m) => (
-          <div key={m.label} className="glass metric-tile">
-            <span className="icon"></span>
-            <small className="range">{m.rangeLabel}</small>
-            <span className="value">{m.count}</span>
-            <small
-              className={`delta ${m.count >= m.quota ? 'positive' : 'negative'}`}
-            >
-              {m.count >= m.quota ? '▲ ' : '▼ '}
-              {m.percent}%
-            </small>
-          </div>
-        ))}
-      </div>
-
-      {/* Summary tiles row: 2026 and All Time side-by-side */}
+      {/* Last 7 Days and All Time side-by-side */}
       <div className="summary-row">
-        <div className="glass metric-tile year-2026">
-          <small>2026</small>
-          <small className="range">{metrics[3].rangeLabel}</small>
-          <span className="value">{metrics[3].count}</span>
+        <div className="glass metric-tile">
+          <small>LAST 7 DAYS</small>
+          <small className="range">{metrics[0].rangeLabel}</small>
+          <span className="value">{metrics[0].count}</span>
           <small
             className={`delta ${
-              metrics[3].count >= metrics[3].quota ? 'positive' : 'negative'
+              metrics[0].count >= metrics[0].quota ? 'positive' : 'negative'
             }`}
           >
-            {metrics[3].count >= metrics[3].quota ? '▲ ' : '▼ '}
-            {metrics[3].percent}%
+            {metrics[0].count >= metrics[0].quota ? '▲ ' : '▼ '}
+            {metrics[0].percent}%
           </small>
         </div>
 
         <div className="glass metric-tile all-time">
           <small>ALL TIME</small>
-          <small className="range">{metrics[4].rangeLabel}</small>
-          <span className="value at">{metrics[4].count}</span>
+          <small className="range">{metrics[1].rangeLabel}</small>
+          <span className="value at">{metrics[1].count}</span>
           <small
             className={`delta ${
-              metrics[4].count >= metrics[4].quota ? 'positive' : 'negative'
+              metrics[1].count >= metrics[1].quota ? 'positive' : 'negative'
             }`}
           >
-            {metrics[4].count >= metrics[4].quota ? '▲ ' : '▼ '}
-            {metrics[4].percent}%
+            {metrics[1].count >= metrics[1].quota ? '▲ ' : '▼ '}
+            {metrics[1].percent}%
           </small>
         </div>
       </div>

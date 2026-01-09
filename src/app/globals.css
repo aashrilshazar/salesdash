@@ -216,7 +216,7 @@ nav a:hover {
 }
 
 /* ──────────────────────────────────────────
-   SUMMARY ROW (2026 + All Time side-by-side)
+   SUMMARY ROW (Last 7 Days + All Time)
 ────────────────────────────────────────── */
 .summary-row {
   display: grid;
@@ -224,41 +224,19 @@ nav a:hover {
   gap: 20px;
 }
 
-.summary-row .metric-tile.all-time {
-  grid-column: auto;
-  padding: 36px 28px;
-}
-
-.summary-row .metric-tile.all-time .value {
-  font-size: 4rem;
-}
-
-/* 2026 Tile - Cyan theme */
-.metric-tile.year-2026 {
+.summary-row .metric-tile {
   padding: 36px 28px;
   text-align: center;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top, rgba(88, 203, 255, 0.16), transparent 70%), var(--background-alt);
-  box-shadow:
-    0 30px 90px rgba(88, 203, 255, 0.18),
-    inset 0 0 18px rgba(88, 203, 255, 0.18);
 }
 
-.metric-tile.year-2026 .value {
+.summary-row .metric-tile .value {
   font-size: 4rem;
-  font-weight: 600;
-  color: #58cbff;
-  text-shadow: 0 0 32px rgba(88, 203, 255, 0.65);
 }
 
-.metric-tile.year-2026::after {
-  background: linear-gradient(150deg, rgba(88, 203, 255, 0.26), transparent 65%);
-  border-color: rgba(88, 203, 255, 0.25);
-}
-
-.metric-tile.year-2026 small {
-  justify-content: center;
+.summary-row .metric-tile.all-time {
+  grid-column: auto;
 }
 
 @media (max-width: 640px) {
