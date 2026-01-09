@@ -29,12 +29,18 @@ const fmt = (d: Date) =>
 
 type CustomTooltipProps = {
   active?: boolean;
-  payload?: Array<{ payload: { label: string; count: number } }>;
+  payload?: Array<{ payload: { label: string; count: number; quota: number } }>;
 };
 
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
-  const { label, count } = payload[0].payload;
+  const { label, count, quota } = payload[0].payload;
+  const diff = count - quota;
+  const arrow = diff >= 0 ? '▲' : '▼';
+  const text = diff >= 0
+    ? `Above Quota: ${diff}`
+    : `Below Quota: ${-diff}`;
+  const color = diff >= 0 ? '#37ff00' : '#f87171';
 
   return (
     <div style={{
@@ -45,14 +51,16 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
       boxShadow: '0 18px 48px rgba(5, 8, 16, 0.65)',
       fontSize: 14,
       color: '#f4f7fb',
-      minWidth: 160
+      minWidth: 180
     }}>
-      <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8a93ad', marginBottom: 8 }}>
+      <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8a93ad' }}>
         {label}
       </div>
-      <div style={{ fontSize: 24, fontWeight: 600, color: '#37ff00' }}>
-        {count} meetings
+      <div style={{ color, margin: '8px 0 6px', fontWeight: 600 }}>
+        {arrow} {text}
       </div>
+      <div style={{ marginBottom: 2 }}>Meetings Booked: <strong>{count}</strong></div>
+      <div style={{ color: '#f87171' }}>Quota: <strong>{quota}</strong></div>
     </div>
   );
 };
@@ -95,30 +103,63 @@ export default function Dashboard() {
     },
   ];
 
-  const maxValue = Math.max(...chartData.map((d) => d.count));
+  const maxValue = Math.max(
+    ...chartData.map((d) => Math.max(d.count, d.quota))
+  );
   const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 1;
+
+  const metrics = [
+    buildMetric('Last 7 Days', 7),
+    buildMetric('Last 90 Days', 90),
+    buildMetric('Last 180 Days', 180),
+  ].map((m) => ({
+    ...m,
+    gap: Math.abs(m.count - m.quota),
+    percent: m.quota > 0
+      ? (m.count >= m.quota
+        ? Math.round((m.count / m.quota) * 100)
+        : Math.round((1 - m.count / m.quota) * 100))
+      : 0,
+  }));
+
+  const allTimeMetric = {
+    label: 'All Time',
+    count: data.length,
+    quota: Math.round(((now - earliest) / MS_DAY) * quotaPerDay),
+    rangeLabel: `${fmt(new Date(earliest))} – ${fmt(new Date(now))}`,
+  };
 
   return (
     <section className="dashboard">
-      <div className="summary-row">
-        <div className="glass metric-tile this-week">
-          <small>THIS WEEK</small>
-          <span className="value">{
-            data.filter((m) => {
-              const today = new Date();
-              const dayOfWeek = today.getDay();
-              const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-              const monday = new Date(today);
-              monday.setHours(0, 0, 0, 0);
-              monday.setDate(today.getDate() - mondayOffset);
-              return +new Date(m.date) >= monday.getTime();
-            }).length
-          }</span>
-        </div>
-
+      <div className="metric-grid">
+        {metrics.map((m) => (
+          <div key={m.label} className="glass metric-tile">
+            <span className="icon"></span>
+            <small className="range">{m.rangeLabel}</small>
+            <span className="value">{m.count}</span>
+            <small
+              className={`delta ${m.count >= m.quota ? 'positive' : 'negative'}`}
+            >
+              {m.count >= m.quota ? '▲ ' : '▼ '}
+              {m.percent}%
+            </small>
+          </div>
+        ))}
         <div className="glass metric-tile all-time">
           <small>ALL TIME</small>
-          <span className="value at">{data.length}</span>
+          <span className="value at">{allTimeMetric.count}</span>
+          <small
+            className={`delta ${
+              allTimeMetric.count >= allTimeMetric.quota ? 'positive' : 'negative'
+            }`}
+          >
+            {allTimeMetric.count >= allTimeMetric.quota ? '▲ ' : '▼ '}
+            {allTimeMetric.quota > 0
+              ? (allTimeMetric.count >= allTimeMetric.quota
+                ? Math.round((allTimeMetric.count / allTimeMetric.quota) * 100)
+                : Math.round((1 - allTimeMetric.count / allTimeMetric.quota) * 100))
+              : 0}%
+          </small>
         </div>
       </div>
 
@@ -129,7 +170,7 @@ export default function Dashboard() {
             <XAxis dataKey="label" stroke="#cfcfcf" />
             <YAxis
               label={{
-                value: 'Total Meetings',
+                value: 'Meetings',
                 angle: -90,
                 position: 'insideLeft',
                 fill: '#aaa',
@@ -140,6 +181,7 @@ export default function Dashboard() {
               domain={[0, yAxisMax]}
             />
             <Tooltip content={<CustomTooltip />} />
+            {/* Green fill showing surplus between actual and quota */}
             <Area
               type="monotone"
               dataKey="count"
@@ -148,13 +190,33 @@ export default function Dashboard() {
               fillOpacity={0.3}
               isAnimationActive={false}
             />
+            {/* Mask under the quota line to create the "between" effect */}
+            <Area
+              type="monotone"
+              dataKey="quota"
+              stroke="none"
+              fill="var(--background)"
+              fillOpacity={1}
+              isAnimationActive={false}
+            />
+            {/* Red quota line */}
+            <Line
+              type="monotone"
+              dataKey="quota"
+              stroke="#f87171"
+              strokeWidth={2}
+              strokeDasharray="10 0"
+              dot={false}
+              name="Quota"
+            />
+            {/* White actual line */}
             <Line
               type="monotone"
               dataKey="count"
-              stroke="#37ff00"
+              stroke="#ffffff"
               strokeWidth={3}
-              dot={{ r: 5, fill: '#37ff00' }}
-              name="Meetings"
+              dot={{ r: 4 }}
+              name="Meetings Booked"
             />
           </ComposedChart>
         </ResponsiveContainer>
