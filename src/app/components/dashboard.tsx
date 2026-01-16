@@ -166,6 +166,13 @@ export default function Dashboard() {
       <div className="glass chart-wrap">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData}>
+            <defs>
+              <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#37ff00" stopOpacity={0.8} />
+                <stop offset="50%" stopColor="#37ff00" stopOpacity={0.5} />
+                <stop offset="100%" stopColor="#37ff00" stopOpacity={0.2} />
+              </linearGradient>
+            </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.1)" strokeDasharray="3 3" />
             <XAxis dataKey="label" stroke="#cfcfcf" />
             <YAxis
@@ -186,8 +193,8 @@ export default function Dashboard() {
               type="monotone"
               dataKey="count"
               stroke="none"
-              fill="#37ff00"
-              fillOpacity={0.3}
+              fill="url(#greenGradient)"
+              fillOpacity={1}
               isAnimationActive={false}
             />
             {/* Mask under the quota line to create the "between" effect */}
