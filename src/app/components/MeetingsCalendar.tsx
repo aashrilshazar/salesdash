@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
 type Props = {
-  meetingDays: Set<string>;
+  meetingsByDay: Map<string, string[]>;
   onClose: () => void;
 };
 
@@ -12,6 +12,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 const DAY_HEADERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const MONTHLY_QUOTA = 40;
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
@@ -23,6 +24,15 @@ function startDay(year: number, month: number) {
 
 function dateKey(year: number, month: number, day: number) {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function monthMeetingCount(meetingsByDay: Map<string, string[]>, year: number, month: number) {
+  let count = 0;
+  const total = daysInMonth(year, month);
+  for (let d = 1; d <= total; d++) {
+    count += meetingsByDay.get(dateKey(year, month, d))?.length ?? 0;
+  }
+  return count;
 }
 
 /* ── Shared styles ─────────────────────────── */
@@ -68,29 +78,76 @@ const navBtn: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-const dot: React.CSSProperties = {
+const dotStyle: React.CSSProperties = {
   width: 6,
   height: 6,
   borderRadius: '50%',
   backgroundColor: '#37ff00',
-  margin: '2px auto 0',
 };
+
+const tooltipStyle: React.CSSProperties = {
+  position: 'absolute',
+  bottom: '100%',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  marginBottom: 6,
+  background: 'rgba(10, 14, 28, 0.95)',
+  border: '1px solid rgba(82, 196, 255, 0.35)',
+  borderRadius: 10,
+  padding: '8px 12px',
+  fontSize: 11,
+  color: '#f4f7fb',
+  whiteSpace: 'nowrap' as const,
+  zIndex: 10,
+  boxShadow: '0 12px 32px rgba(5, 8, 16, 0.7)',
+};
+
+/* ── Tooltip hook ──────────────────────────── */
+function useHoverTooltip() {
+  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onEnter = useCallback((key: string) => {
+    timerRef.current = setTimeout(() => setHoveredDay(key), 500);
+  }, []);
+
+  const onLeave = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setHoveredDay(null);
+  }, []);
+
+  return { hoveredDay, onEnter, onLeave };
+}
+
+/* ── Tooltip component ─────────────────────── */
+function FirmTooltip({ titles }: { titles: string[] }) {
+  return (
+    <div style={tooltipStyle}>
+      {titles.map((t, i) => (
+        <div key={i} style={{ padding: '2px 0' }}>{t}</div>
+      ))}
+    </div>
+  );
+}
 
 /* ── Year View ─────────────────────────────── */
 function YearView({
   year,
-  meetingDays,
+  meetingsByDay,
   onMonthClick,
 }: {
   year: number;
-  meetingDays: Set<string>;
+  meetingsByDay: Map<string, string[]>;
   onMonthClick: (month: number) => void;
 }) {
+  const { hoveredDay, onEnter, onLeave } = useHoverTooltip();
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
       {MONTH_NAMES.map((name, mi) => {
         const total = daysInMonth(year, mi);
         const offset = startDay(year, mi);
+        const mCount = monthMeetingCount(meetingsByDay, year, mi);
         return (
           <div key={name} style={{ minWidth: 0 }}>
             <div
@@ -98,14 +155,14 @@ function YearView({
               style={{
                 textAlign: 'center',
                 fontWeight: 600,
-                fontSize: 13,
+                fontSize: 12,
                 marginBottom: 6,
                 cursor: 'pointer',
                 color: '#f4f7fb',
                 letterSpacing: '0.06em',
               }}
             >
-              {name}
+              {name} <span style={{ color: '#8a93ad', fontWeight: 400 }}>| {mCount} Meeting{mCount !== 1 ? 's' : ''}</span>
             </div>
             {/* Day-of-week header */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center' }}>
@@ -120,11 +177,25 @@ function YearView({
               ))}
               {Array.from({ length: total }).map((_, i) => {
                 const day = i + 1;
-                const has = meetingDays.has(dateKey(year, mi, day));
+                const key = dateKey(year, mi, day);
+                const titles = meetingsByDay.get(key);
+                const has = !!titles;
                 return (
-                  <span key={day} style={{ fontSize: 10, lineHeight: '16px', padding: '2px 0' }}>
+                  <span
+                    key={day}
+                    style={{ fontSize: 10, lineHeight: '16px', padding: '2px 0', position: 'relative' }}
+                  >
                     {day}
-                    {has && <div style={dot} />}
+                    {has && (
+                      <div
+                        style={{ display: 'flex', justifyContent: 'center' }}
+                        onMouseEnter={() => onEnter(key)}
+                        onMouseLeave={onLeave}
+                      >
+                        <div style={{ ...dotStyle, margin: '2px auto 0' }} />
+                        {hoveredDay === key && <FirmTooltip titles={titles} />}
+                      </div>
+                    )}
                   </span>
                 );
               })}
@@ -140,23 +211,33 @@ function YearView({
 function MonthView({
   year,
   month,
-  meetingDays,
+  meetingsByDay,
   onBack,
 }: {
   year: number;
   month: number;
-  meetingDays: Set<string>;
+  meetingsByDay: Map<string, string[]>;
   onBack: () => void;
 }) {
+  const { hoveredDay, onEnter, onLeave } = useHoverTooltip();
   const total = daysInMonth(year, month);
   const offset = startDay(year, month);
+  const mCount = monthMeetingCount(meetingsByDay, year, month);
+  const quotaPercent = Math.round((mCount / MONTHLY_QUOTA) * 100);
+  const quotaColor = quotaPercent >= 100 ? '#37ff00' : '#f87171';
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
         <button onClick={onBack} style={navBtn}>←</button>
         <h3 style={{ fontSize: 22, fontWeight: 600, letterSpacing: '0.04em' }}>
-          {MONTH_NAMES[month]} {year}
+          {MONTH_NAMES[month]} {year}{' '}
+          <span style={{ color: '#8a93ad', fontWeight: 400 }}>
+            | {mCount} Meeting{mCount !== 1 ? 's' : ''} |{' '}
+          </span>
+          <span style={{ color: quotaColor, fontWeight: 400 }}>
+            {quotaPercent}% of Quota
+          </span>
         </h3>
       </div>
 
@@ -178,7 +259,8 @@ function MonthView({
         ))}
         {Array.from({ length: total }).map((_, i) => {
           const day = i + 1;
-          const has = meetingDays.has(dateKey(year, month, day));
+          const key = dateKey(year, month, day);
+          const titles = meetingsByDay.get(key);
           return (
             <div
               key={day}
@@ -193,10 +275,22 @@ function MonthView({
                 border: '1px solid rgba(255,255,255,0.06)',
                 background: 'rgba(255,255,255,0.02)',
                 fontSize: 14,
+                position: 'relative',
               }}
             >
               {day}
-              {has && <div style={{ ...dot, width: 8, height: 8, marginTop: 4 }} />}
+              {titles && (
+                <div
+                  style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}
+                  onMouseEnter={() => onEnter(key)}
+                  onMouseLeave={onLeave}
+                >
+                  {titles.map((_, di) => (
+                    <div key={di} style={{ ...dotStyle, width: 8, height: 8 }} />
+                  ))}
+                  {hoveredDay === key && <FirmTooltip titles={titles} />}
+                </div>
+              )}
             </div>
           );
         })}
@@ -206,7 +300,7 @@ function MonthView({
 }
 
 /* ── Main Component ────────────────────────── */
-export default function MeetingsCalendar({ meetingDays, onClose }: Props) {
+export default function MeetingsCalendar({ meetingsByDay, onClose }: Props) {
   const [year, setYear] = useState(2026);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
@@ -234,13 +328,13 @@ export default function MeetingsCalendar({ meetingDays, onClose }: Props) {
                 →
               </button>
             </div>
-            <YearView year={year} meetingDays={meetingDays} onMonthClick={(m) => setSelectedMonth(m)} />
+            <YearView year={year} meetingsByDay={meetingsByDay} onMonthClick={(m) => setSelectedMonth(m)} />
           </>
         ) : (
           <MonthView
             year={year}
             month={selectedMonth}
-            meetingDays={meetingDays}
+            meetingsByDay={meetingsByDay}
             onBack={() => setSelectedMonth(null)}
           />
         )}

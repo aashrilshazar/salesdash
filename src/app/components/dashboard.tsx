@@ -71,15 +71,20 @@ export default function Dashboard() {
   const { data, error } = useSWR('/api/meetings', fetcher);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const meetingDays = useMemo(() => {
-    const s = new Set<string>();
+  const meetingsByDay = useMemo(() => {
+    const m = new Map<string, string[]>();
     if (data) {
-      data.forEach((m) => {
-        const d = new Date(m.date);
-        if (!isNaN(d.getTime())) s.add(d.toISOString().slice(0, 10));
+      data.forEach((meeting) => {
+        const d = new Date(meeting.date);
+        if (!isNaN(d.getTime())) {
+          const key = d.toISOString().slice(0, 10);
+          const arr = m.get(key) || [];
+          arr.push(meeting.title);
+          m.set(key, arr);
+        }
       });
     }
-    return s;
+    return m;
   }, [data]);
 
   if (error) return <p className="glass pad">Failed: {error.message}</p>;
@@ -269,7 +274,7 @@ export default function Dashboard() {
 
       {calendarOpen && (
         <MeetingsCalendar
-          meetingDays={meetingDays}
+          meetingsByDay={meetingsByDay}
           onClose={() => setCalendarOpen(false)}
         />
       )}
