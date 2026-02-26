@@ -89,8 +89,27 @@ export default function Dashboard() {
     };
   };
 
+  const buildMonthlyMetric = () => {
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const monthName = today.toLocaleDateString('en-US', { month: 'long' });
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const count = data.filter((m) => {
+      const meetingDate = +new Date(m.date);
+      return meetingDate >= startDate.getTime() && meetingDate < nextMonthStart.getTime();
+    }).length;
+    const quota = Math.round(daysInMonth * quotaPerDay);
+    return {
+      label: monthName,
+      rangeLabel: monthName,
+      count,
+      quota,
+    };
+  };
+
   const chartData = [
-    buildMetric('Last 7 Days', 7),
+    buildMonthlyMetric(),
     buildMetric('Last 90 Days', 90),
     buildMetric('Last 180 Days', 180),
     {
@@ -109,7 +128,7 @@ export default function Dashboard() {
   const yAxisMax = maxValue > 0 ? Math.ceil(maxValue * 1.1) : 1;
 
   const metrics = [
-    buildMetric('Last 7 Days', 7),
+    buildMonthlyMetric(),
     buildMetric('Last 90 Days', 90),
     buildMetric('Last 180 Days', 180),
   ].map((m) => ({
