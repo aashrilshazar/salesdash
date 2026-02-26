@@ -8,18 +8,8 @@ export default async function FirmsPage() {
   const initialFirms = await fetchFirms();
 
   return (
-    <main style={{ backgroundColor: '#111', minHeight: '100vh', padding: '40px' }}>
-      <h1 style={{
-        textAlign: 'center',
-        fontSize: '48px',
-        color: 'white',
-        marginBottom: '40px'
-      }}>
-        Firms
-      </h1>
-
-      {/* Pass the raw data into our client component */}
+    <div style={{ maxWidth: 1140, margin: '48px auto 64px', padding: '0 32px 72px' }}>
       <FirmsTable initialFirms={initialFirms} />
-    </main>
+    </div>
   );
 }
