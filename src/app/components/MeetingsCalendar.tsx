@@ -184,18 +184,16 @@ function YearView({
                   <span
                     key={day}
                     style={{ fontSize: 10, lineHeight: '16px', padding: '2px 0', position: 'relative' }}
+                    onMouseEnter={has ? () => onEnter(key) : undefined}
+                    onMouseLeave={has ? onLeave : undefined}
                   >
                     {day}
                     {has && (
-                      <div
-                        style={{ display: 'flex', justifyContent: 'center' }}
-                        onMouseEnter={() => onEnter(key)}
-                        onMouseLeave={onLeave}
-                      >
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <div style={{ ...dotStyle, margin: '2px auto 0' }} />
-                        {hoveredDay === key && <FirmTooltip titles={titles} />}
                       </div>
                     )}
+                    {hoveredDay === key && titles && <FirmTooltip titles={titles} />}
                   </span>
                 );
               })}
@@ -277,20 +275,18 @@ function MonthView({
                 fontSize: 14,
                 position: 'relative',
               }}
+              onMouseEnter={titles ? () => onEnter(key) : undefined}
+              onMouseLeave={titles ? onLeave : undefined}
             >
               {day}
               {titles && (
-                <div
-                  style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}
-                  onMouseEnter={() => onEnter(key)}
-                  onMouseLeave={onLeave}
-                >
+                <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {titles.map((_, di) => (
                     <div key={di} style={{ ...dotStyle, width: 8, height: 8 }} />
                   ))}
-                  {hoveredDay === key && <FirmTooltip titles={titles} />}
                 </div>
               )}
+              {hoveredDay === key && titles && <FirmTooltip titles={titles} />}
             </div>
           );
         })}
