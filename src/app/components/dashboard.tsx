@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useMemo } from 'react';
 import useSWR from 'swr';
+import MeetingsCalendar from './MeetingsCalendar';
 import {
   ComposedChart,
   Line,
@@ -67,6 +69,18 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
 
 export default function Dashboard() {
   const { data, error } = useSWR('/api/meetings', fetcher);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  const meetingDays = useMemo(() => {
+    const s = new Set<string>();
+    if (data) {
+      data.forEach((m) => {
+        const d = new Date(m.date);
+        if (!isNaN(d.getTime())) s.add(d.toISOString().slice(0, 10));
+      });
+    }
+    return s;
+  }, [data]);
 
   if (error) return <p className="glass pad">Failed: {error.message}</p>;
   if (!data) return <p className="glass pad">Loading…</p>;
@@ -151,8 +165,13 @@ export default function Dashboard() {
   return (
     <section className="dashboard">
       <div className="metric-grid">
-        {metrics.map((m) => (
-          <div key={m.label} className="glass metric-tile">
+        {metrics.map((m, i) => (
+          <div
+            key={m.label}
+            className="glass metric-tile"
+            onClick={i === 0 ? () => setCalendarOpen(true) : undefined}
+            style={i === 0 ? { cursor: 'pointer' } : undefined}
+          >
             <span className="icon"></span>
             <small className="range">{m.rangeLabel}</small>
             <span className="value">{m.count}</span>
@@ -247,6 +266,13 @@ export default function Dashboard() {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
+
+      {calendarOpen && (
+        <MeetingsCalendar
+          meetingDays={meetingDays}
+          onClose={() => setCalendarOpen(false)}
+        />
+      )}
     </section>
   );
 }
