@@ -53,8 +53,8 @@ const modal: React.CSSProperties = {
   backdropFilter: 'blur(24px)',
   boxShadow: '0 20px 60px rgba(4, 6, 11, 0.85), 0 0 40px rgba(10, 129, 255, 0.18)',
   padding: '32px 36px',
-  maxWidth: 960,
-  width: '92vw',
+  maxWidth: 1440,
+  width: '95vw',
   maxHeight: '90vh',
   overflowY: 'auto' as const,
   color: '#f4f7fb',
@@ -184,18 +184,16 @@ function YearView({
                   <span
                     key={day}
                     style={{ fontSize: 10, lineHeight: '16px', padding: '2px 0', position: 'relative' }}
+                    onMouseEnter={has ? () => onEnter(key) : undefined}
+                    onMouseLeave={has ? onLeave : undefined}
                   >
                     {day}
                     {has && (
-                      <div
-                        style={{ display: 'flex', justifyContent: 'center' }}
-                        onMouseEnter={() => onEnter(key)}
-                        onMouseLeave={onLeave}
-                      >
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <div style={{ ...dotStyle, margin: '2px auto 0' }} />
-                        {hoveredDay === key && <FirmTooltip titles={titles} />}
                       </div>
                     )}
+                    {hoveredDay === key && titles && <FirmTooltip titles={titles} />}
                   </span>
                 );
               })}
@@ -277,20 +275,18 @@ function MonthView({
                 fontSize: 14,
                 position: 'relative',
               }}
+              onMouseEnter={titles ? () => onEnter(key) : undefined}
+              onMouseLeave={titles ? onLeave : undefined}
             >
               {day}
               {titles && (
-                <div
-                  style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}
-                  onMouseEnter={() => onEnter(key)}
-                  onMouseLeave={onLeave}
-                >
+                <div style={{ display: 'flex', gap: 3, marginTop: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                   {titles.map((_, di) => (
                     <div key={di} style={{ ...dotStyle, width: 8, height: 8 }} />
                   ))}
-                  {hoveredDay === key && <FirmTooltip titles={titles} />}
                 </div>
               )}
+              {hoveredDay === key && titles && <FirmTooltip titles={titles} />}
             </div>
           );
         })}

@@ -25,10 +25,10 @@ export default function RootLayout({
               </h1>
             ) : (
               <>
-                <h1 className="text-3xl sm:text-4xl font-bold text-center">
+                <h1 className="text-3xl sm:text-4xl font-bold text-center" style={{ fontFamily: 'Arial, sans-serif' }}>
                   Sales Dashboard
                 </h1>
-                <h2 className="text-lg sm:text-2xl text-center mt-1">
+                <h2 className="text-lg sm:text-2xl text-center mt-1" style={{ fontFamily: 'Arial, sans-serif' }}>
                   Total Meetings
                 </h2>
               </>
