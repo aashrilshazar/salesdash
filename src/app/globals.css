@@ -126,6 +126,8 @@ nav a:hover {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  transform: scale(0.7);
+  transform-origin: top center;
 }
 
 .metric-grid {
